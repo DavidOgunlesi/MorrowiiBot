@@ -1,7 +1,7 @@
 import openai
 import time
 
-openai.api_key = "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"
+openai.api_key = "null"
 
 def send_response(conversation):
     try:

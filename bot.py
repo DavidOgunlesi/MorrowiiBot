@@ -22,7 +22,7 @@ async def send_ai_message(message, user_message, conversation):
         print(e)
 
 def run_discord_bot():
-    TOKEN = "MTA4NzAzNDI1NjgzODExMTM4Mw.GNIX9s.YkLxwcVX5xQdcPKUza1wCCDAyfvFuQanep6FMU"
+    TOKEN = "null"
     client = discord.Client(intents=discord.Intents.all())
     globals.CLIENT = client
     #conversation = brain.init_morrowii_brain()

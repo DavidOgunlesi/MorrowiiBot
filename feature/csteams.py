@@ -1,26 +1,144 @@
 from __future__ import annotations
 from typing import List, Dict, Any
-import globals
 import discord
+import random
+tags = [
+"Headshot Hero",
+"AWP Master",
+"Pistol Prodigy",
+"Bomb Defuser",
+"Rusher Extraordinaire",
+"Clutch King",
+"Knife Ninja",
+"Grenade God",
+"Spray and Pray",
+"Flawless Victory",
+"One Tap Wonder",
+"Smoke Expert",
+"Flash Master",
+"Mind Game Master",
+"Spray Control Savant",
+"Eco Warrior",
+"Aimbot Ace",
+"Tactical Titan",
+"Cover Fire Captain",
+"Sniper Specialist",
+"Piston Pumper",
+"Wallbang Wizard",
+"Heist Hero",
+"C4 Destroyer",
+"Counter-Terrorist Crusader",
+"Terrorist Termination",
+"Bulletproof Beast",
+"Spawn Slayer",
+"Nade Nailer",
+"Recoil Reducer",
+"Wall of Bullets",
+"Target Tracker",
+"Pistol Pro",
+"Clutch Commander",
+"Stealth Striker",
+"Flanker",
+"Trigger Happy",
+"Bomb Planner",
+"Flash Freak",
+"Tactician",
+"Mindbender",
+"Grenade Guru",
+"Sharpshooter",
+"Assault Ace",
+"Fragger Fiend",
+"Pointman",
+"Spray and Pray Slayer",
+"Cover Master",
+"Demolition Demon",
+"Hostage Hero",
+"Headshot Hunter",
+"Blade Master",
+"Smoke Screen Commander",
+"Flashbang Force",
+"Mind Games Guru",
+"Recoil Rebel",
+"Kill Confirmer",
+"Wallbang Warrior",
+"Terrorist Takedown",
+"Counter-Terrorism Captain",
+"Stealth Sniper",
+"AWP Assassin",
+"Tactical Tactician",
+"Pistol Prodigy",
+"Firepower Freak",
+"Bomb Defusal Expert",
+"Grenade Genius",
+"Spray Control Specialist",
+"Eco Executive",
+"Flawless Finisher",
+"One Tap Terminator",
+"Smoke Signal Sergeant",
+"Flashbang Fighter",
+"Mind Game Maven",
+"Cover Fire Chief",
+"Sniper Savior",
+"Piston Punisher",
+"Wallbang Wonder",
+"Heist Hunter",
+"C4 Connoisseur",
+"Counter-Terrorist Champion",
+"Terrorist Toppler",
+"Bulletproof Bruiser",
+"Spawn Suppressor",
+"Nade Ninja",
+"Recoil Ruler",
+"Target Terminator",
+"Pistol Perfectionist",
+"Clutch Conqueror",
+"Stealth Slayer",
+"Flanker Fiend",
+"Trigger Triumph",
+"Bomb Builder",
+"Flashbang Fiend",
+"Tactician Titan",
+"Mind Manipulator",
+"Grenade Great",
+"Sharpshooter Supreme",
+"Assault Artist",
+"Fragger Frontline",
+"Fucking Idiot",
+"The Useless"
+]
 
 teams = {}
-
+memberInTeamSet = {}
 class Team:
-    def __init__(self, guild, name: str, captain: str):
+    def __init__(self, guild, name: str, captain: str, maxPlayers = 5):
         self.name = name
         self.captain = captain
         self.players = {}
-        self.max_players = 5
+        self.max_players = maxPlayers
         self.guild = guild
         self.activeChannel = None
 
     async def add_player(self, channel, player):
-        self.players[str(player)] = player
+        # if full
         if len(self.players) == self.max_players:
-            vcname = self.name + " Team"
-            await self.createVoiceChannel(vcname)
-            channel.send(f"> All spaces filled in {self.name}, moving all to voice channel '{vcname}'")
+            at_string = ""
+            for player in self.players.values():
+                at_string += f"\n ***{random.choice(tags)},*** <@{player.id}> , "
+            
+            await channel.send(f"> All spaces filled in {self.name}.")
+            await channel.send(f"> CSGOmers Assemble!" + at_string)
+            return
+        memberInTeamSet[player.id] = self
+        self.players[str(player)] = player
 
+    async def remove_player(self, player):
+        if str(player) in self.players.keys():
+            del self.players[str(player)]
+            del memberInTeamSet[player.id]
+            #await player.move_to(None)
+            return True
+        return False
+    
     @property
     def free_count(self) -> int:
         return self.max_players - len(self.players)
@@ -40,86 +158,71 @@ class Team:
         except Exception as e:
             print(e)
 
-async def handle_response(message, tokens: List[str]):
-    msg = None
-    msg = try_create_team(message, tokens) or msg
-    msg = await try_join_team(message, tokens) or msg
-    msg = await try_start_team(message, tokens) or msg
-    return msg
-
-async def try_start_team(message, tokens:List[str]):
-    data = parse_command_string("\start {team_name:str}", tokens)
-    if data != None:
-        team_name = data['team_name']
-        
-        if str(message.guild)+team_name not in teams:
-            return None
-        
-        team: Team = teams[str(message.guild)+team_name]
-
-        if message.author != team.captain:
-            return f'> Only the captain can start a team ***"{team.name}"***.'
-        
-        await team.createVoiceChannel(team.name + " Team")
+async def try_create_team(ctx, *args):
+    if len(args) == 0:
+        team_name = str(ctx.message.author.id)
+        team = Team(ctx.guild, team_name, ctx.message.author)
+        teams[str(ctx.guild)+str(team_name)] = team
+        await team.add_player(ctx.message.channel, ctx.message.author)
+        await ctx.send(f'> {team.captain} created a team. Use `/join @{ctx.message.author}` to join.')
+    elif args[0] == "newteam" and len(args) == 2 and args[1].isnumeric():
+        team = Team(ctx.guild, team_name, ctx.message.author, args[1])
+        teams[str(ctx.guild)+str(team_name)] = team
+        await team.add_player(ctx.message.channel, ctx.message.author)
+        await ctx.send(f'> {team.captain} created a {args[1]} man limited team. Use `/join @{ctx.message.author}` to join.')
     
-    return None
 
-def try_create_team(message, tokens:List[str]):
-    data = parse_command_string("\letsplaycs {team_name:str}", tokens)
-    if data != None:
-        team_name = data['team_name']
-        team = Team(message.guild, team_name, message.author)
-        teams[str(message.guild)+team_name] = team
-        return f'> {team.captain} created a team ***"{team.name}"***.'
+async def try_join_team(ctx, member: discord.Member):
+    team_name = str(member.id)
+    team_ref = str(ctx.guild)+team_name
+    if team_ref not in teams:
+        await ctx.send(f'> Team ***"{team_name}"*** does not exist. Use `/cs {team_name}` to create a team.')
+        return
+    if member.id in memberInTeamSet:
+        await ctx.send(f'> You are already in a team.')
+        return
+    team: Team = teams[team_ref]
+
+    if str(ctx.message.author) in team.players.keys():
+        await ctx.send(f"> You are already in a {member.name}'s team.")
+        return
+    if team.free_count == 0:
+        await ctx.send(f"> {member.name}'s team is full")
+        return
     
-    return None
+    await team.add_player(ctx.message.channel, ctx.message.author)
+    await ctx.send(f"> {ctx.message.author} joined a {member.name}'s team. Need {team.free_count} more spaces ({team.count}/{team.max_players}).")
 
-async def try_join_team(message, tokens:List[str]):
-    data = parse_command_string("\join {team_name:str}", tokens)
-    if data != None:
-        team_name = data['team_name']
+async def try_create_team(ctx):
+    team_name = str(ctx.message.author.id)
+    team = Team(ctx.guild, team_name, ctx.message.author)
+    teams[str(ctx.guild)+str(team_name)] = team
+    await team.add_player(ctx.message.channel, ctx.message.author)
+    await ctx.send(f'> {team.captain} created a team. Use `/join @{ctx.message.author}` to join.')
 
-        if str(message.guild)+team_name not in teams:
-            return None
-        
-        team: Team = teams[str(message.guild)+team_name]
-
-        if str(message.author) in team.players.keys():
-            return f'> You are already in a ***"{team.name}"*** team.'
-        if team.free_count == 0:
-            return f'> `Team *"{team.name}"* is full.`'
-        
-        await team.add_player(message.channel, message.author)
-        return f'> {message.author} joined a ***"{team.name}"*** team. Need {team.free_count} more spaces ({team.count}/{team.max_players}).'
+async def try_leave_team(ctx):
+    if ctx.message.author.id not in memberInTeamSet:
+        await ctx.send(f'> You are not in a team.')
+        return
+    team: Team = memberInTeamSet[ctx.message.author.id]
+    if team.captain == ctx.message.author:
+        await ctx.send(f'> You are the captain of the team. Use `/disband` to disband the team.')
+        return
     
-    return None
+    team.remove_player(ctx.message.author)
 
-def parse_command_string(cmd_string: str, tokens: List[str]):
-    "example letsplaycs {team_name:str}"
-    match = cmd_string.split(" ")
+async def try_disband_team(ctx):
+    if ctx.message.author.id not in memberInTeamSet:
+        await ctx.send(f'> You are not in a team.')
+        return
+    team: Team = memberInTeamSet[ctx.message.author.id]
+    if team.captain != ctx.message.author:
+        await ctx.send(f'> You are not the captain of the team. Use `/leave` to leave the team.')
+        return
+    
+    for player in team.players.values():
+        team.remove_player(player)
 
-    if len(match) != len(tokens):
-        print(f"length of match {len(match)} does not match length of tokens {len(tokens)}")
-        return None
-    data = {}
-    for i in range(len(match)):
-        if match[i][0] != '{' and match[i] != tokens[i]:
-            print(f"`{match[i]}` did not match `{tokens[i]}` in tokens")
-            return None
-        if match[i][0] == '{' and match[i][-1] != '}':
-            print(f"{match[i]}_<- does not have a closing bracket")
-            return None
-        else:
-            match_parse = match[i][1:][:-1].split(":")
-            if len(match_parse) != 2:
-                continue
-            name = match_parse[0]
-            _type = match_parse[1]
-            
-            type_match = False
-            type_match = (_type == "str" and type(tokens[i]) == str) or type_match
-            type_match =  (_type == "int" and type(tokens[i]) == int) or type_match
-            if type_match:
-                data[name] = tokens[i]
+    del teams[str(ctx.guild)+str(team.name)]
 
-    return data
+    await ctx.send(f'> {ctx.message.author}\'s team disbanded.')

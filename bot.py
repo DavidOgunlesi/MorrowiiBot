@@ -43,7 +43,7 @@ def run_discord_bot():
     @bot.event
     async def on_ready() -> None:
         print(f'{bot.user} | {bot.user.id} has connected to Discord!')
-        node: wavelink.Node = wavelink.Node(uri='http://localhost:8080', password='youshallnotpass')
+        node: wavelink.Node = wavelink.Node(uri='http://localhost:3000', password='youshallnotpass')
         await wavelink.NodePool.connect(client=bot, nodes=[node])
         print('Wavelink has been setup.')
 

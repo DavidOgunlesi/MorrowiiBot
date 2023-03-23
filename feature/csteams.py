@@ -2,6 +2,8 @@ from __future__ import annotations
 from typing import List, Dict, Any
 import discord
 import random
+import copy
+
 tags = [
 "Headshot Hero",
 "AWP Master",
@@ -121,15 +123,19 @@ class Team:
     async def add_player(self, channel, player):
         # if full
         if len(self.players) == self.max_players:
+            return
+        
+        memberInTeamSet[player.id] = self
+        self.players[str(player)] = player
+
+        if len(self.players) == self.max_players:
             at_string = ""
             for player in self.players.values():
                 at_string += f"\n ***{random.choice(tags)},*** <@{player.id}> , "
             
-            await channel.send(f"> All spaces filled in {self.name}.")
+            await channel.send(f"> All spaces filled!.")
             await channel.send(f"> CSGOmers Assemble!" + at_string)
             return
-        memberInTeamSet[player.id] = self
-        self.players[str(player)] = player
 
     async def remove_player(self, player):
         if str(player) in self.players.keys():
@@ -158,71 +164,64 @@ class Team:
         except Exception as e:
             print(e)
 
-async def try_create_team(ctx, *args):
-    if len(args) == 0:
-        team_name = str(ctx.message.author.id)
-        team = Team(ctx.guild, team_name, ctx.message.author)
-        teams[str(ctx.guild)+str(team_name)] = team
-        await team.add_player(ctx.message.channel, ctx.message.author)
-        await ctx.send(f'> {team.captain} created a team. Use `/join @{ctx.message.author}` to join.')
-    elif args[0] == "newteam" and len(args) == 2 and args[1].isnumeric():
-        team = Team(ctx.guild, team_name, ctx.message.author, args[1])
-        teams[str(ctx.guild)+str(team_name)] = team
-        await team.add_player(ctx.message.channel, ctx.message.author)
-        await ctx.send(f'> {team.captain} created a {args[1]} man limited team. Use `/join @{ctx.message.author}` to join.')
-    
+def get_team_choices(ctx: discord.AutocompleteContext):
+    captains = [team.captain for team in teams.values() if team.guild == ctx.guild]
+    return [f"<@{captain.id}>" for captain in captains]
+
+async def try_create_team(ctx):
+    team_name = str(ctx.author.id)
+    team = Team(ctx.guild, team_name, ctx.author)
+    teams[str(ctx.guild)+str(team_name)] = team
+    await team.add_player(ctx.channel, ctx.author)
+    return f'> {team.captain} created a team. Use `/cs join @{ctx.author}` to join.'
+
+async def try_create_newteam(ctx, limit):
+    team_name = str(ctx.author.id)
+    team = Team(ctx.guild, team_name, ctx.author, limit)
+    teams[str(ctx.guild)+str(team_name)] = team
+    await team.add_player(ctx.channel, ctx.author)
+    return f'> {team.captain} created a {limit} man limited team. Use `/cs join @{ctx.author}` to join.'
+
 
 async def try_join_team(ctx, member: discord.Member):
     team_name = str(member.id)
     team_ref = str(ctx.guild)+team_name
+
+    if ctx.author.id in memberInTeamSet:
+        return f'> You are already in a team.'
     if team_ref not in teams:
-        await ctx.send(f'> Team ***"{team_name}"*** does not exist. Use `/cs {team_name}` to create a team.')
-        return
-    if member.id in memberInTeamSet:
-        await ctx.send(f'> You are already in a team.')
-        return
+        return f'> {member.name} has not created a team. Use `/csnow` to create a team. Or talk to people like a normal person.'
+        
     team: Team = teams[team_ref]
 
-    if str(ctx.message.author) in team.players.keys():
-        await ctx.send(f"> You are already in a {member.name}'s team.")
-        return
+    if str(ctx.author) in team.players.keys():
+        return f"> You are already in a {member.name}'s team."
     if team.free_count == 0:
-        await ctx.send(f"> {member.name}'s team is full")
-        return
+        return f"> {member.name}'s team is full"
     
-    await team.add_player(ctx.message.channel, ctx.message.author)
-    await ctx.send(f"> {ctx.message.author} joined a {member.name}'s team. Need {team.free_count} more spaces ({team.count}/{team.max_players}).")
-
-async def try_create_team(ctx):
-    team_name = str(ctx.message.author.id)
-    team = Team(ctx.guild, team_name, ctx.message.author)
-    teams[str(ctx.guild)+str(team_name)] = team
-    await team.add_player(ctx.message.channel, ctx.message.author)
-    await ctx.send(f'> {team.captain} created a team. Use `/join @{ctx.message.author}` to join.')
+    await team.add_player(ctx.channel, ctx.author)
+    return f"> {ctx.author} joined a {member.name}'s team. Need {team.free_count} more spaces ({team.count}/{team.max_players})."
 
 async def try_leave_team(ctx):
-    if ctx.message.author.id not in memberInTeamSet:
-        await ctx.send(f'> You are not in a team.')
-        return
-    team: Team = memberInTeamSet[ctx.message.author.id]
-    if team.captain == ctx.message.author:
-        await ctx.send(f'> You are the captain of the team. Use `/disband` to disband the team.')
-        return
+    if ctx.author.id not in memberInTeamSet:
+        return f'> You are not in a team.'
+    team: Team = memberInTeamSet[ctx.author.id]
+    if team.captain == ctx.author:
+        return f'> You are the captain of the team. Use `/cs disband` to disband the team.'
     
-    team.remove_player(ctx.message.author)
+    await team.remove_player(ctx.author)
 
 async def try_disband_team(ctx):
-    if ctx.message.author.id not in memberInTeamSet:
-        await ctx.send(f'> You are not in a team.')
-        return
-    team: Team = memberInTeamSet[ctx.message.author.id]
-    if team.captain != ctx.message.author:
-        await ctx.send(f'> You are not the captain of the team. Use `/leave` to leave the team.')
-        return
+    if ctx.author.id not in memberInTeamSet:
+        return f'> You are not in a team.'
+    team: Team = memberInTeamSet[ctx.author.id]
+    if team.captain != ctx.author:
+        return f'> You are not the captain of the team. Use `/cs leave` to leave the team.'
     
-    for player in team.players.values():
-        team.remove_player(player)
+    players = team.players.values()
+    for player in players:
+        del memberInTeamSet[player.id]
 
     del teams[str(ctx.guild)+str(team.name)]
 
-    await ctx.send(f'> {ctx.message.author}\'s team disbanded.')
+    return f'> {ctx.author}\'s team disbanded.'

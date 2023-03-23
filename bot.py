@@ -1,5 +1,4 @@
 import discord
-from discord import commands
 import responses
 import brain
 from dotenv import load_dotenv, dotenv_values

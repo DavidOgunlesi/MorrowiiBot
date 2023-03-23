@@ -958,3 +958,6 @@
 2023-03-23 03:19:06.897  INFO 21808 --- [XNIO-1 task-2] lavalink.server.io.RequestLoggingFilter  : GET /v3/loadtracks?identifier=ytsearch:radioactive+imagine+dragons, client=0:0:0:0:0:0:0:1
 2023-03-23 03:20:35.419  INFO 21808 --- [XNIO-1 I/O-2] lavalink.server.io.SocketServer          : Connection closed from /[0:0:0:0:0:0:0:1]:59429 -- CloseStatus[code=1006, reason=]
 2023-03-23 03:20:35.421  INFO 21808 --- [XNIO-1 I/O-2] lavalink.server.io.SocketContext         : Shutting down 1 playing players.
+2023-03-23 03:43:52.891  INFO 21808 --- [SpringApplicationShutdownHook] io.undertow                              : stopping server: Undertow - 2.2.16.Final
+2023-03-23 03:43:52.899  INFO 21808 --- [SpringApplicationShutdownHook] io.undertow.servlet                      : Destroying Spring FrameworkServlet 'dispatcherServlet'
+2023-03-23 03:43:52.902  INFO 21808 --- [SpringApplicationShutdownHook] c.s.d.l.tools.GarbageCollectionMonitor   : GC monitoring disabled.

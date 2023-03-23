@@ -27,18 +27,30 @@ str_music_stopped = "> Stopped the music for you!"
 str_music_volume_correction = "> The volume must be between 0 and 200"
 str_music_volume_changed = "> Changed volume to ***{}%***"
 str_member_alone_in_voice_channel = "> You are the only one in the voice channel. You already have control of the bot."
-str_vote = "> <@{}> wants to take control of the bot. {} votes needed. Type `/vote` to vote."
+str_vote = "> <@{}> wants to take control of the bot. {} votes needed. Type `/music vote` to vote."
 str_has_control = "> <@{}> now has control of the bot."
 str_no_vote_in_progress = "> There is no vote in progress."
 str_relinquish_control = "> <@{}> relinquished control of the bot. No one has control of the bot now."
+str_music_not_found = "> Music not found. Please try another search term."
+str_song_banned = "> ***{}*** has been banned from the queue and all future queues."
+str_song_unbanned = "> ***{}*** has been unbanned. You can now freely play it."
+str_no_bans = "> ***{}*** is not banned from the queue."
+str_no_bans_list = "> There are no bans in this server."
+str_bans_list = "> Bans:\n{}"
+str_ban_format = '\n> ***{}. {}***'
+str_song_banned_query = "> ***{}*** has been banned from the queue and all future queues. Play a different song."
+str_vote_counted = "Your vote has been counted. You need {} more votes to take control."
+str_song_already_banned = "> ***{}*** is already banned from the queue."
 
 control = {} # Dict[guild, member]
 votes = {} # Dict[guild, int]
+voteLeads = {} # Dict[guild, member]
+bans = {} # Dict[guild, List[str (trackname)]]
 
 def has_control(ctx):
-    if ctx.guild not in control:
+    if ctx.guild.id not in control:
         return True
-    if ctx.author.id == control[ctx.guild]:
+    if ctx.author.id == control[ctx.guild.id]:
         return True
     else:
         return False
@@ -96,6 +108,13 @@ async def queueplay(ctx, search: str):
         player: wavelink.Player = ctx.voice_client
 
     track = await wavelink.YouTubeTrack.search(search, return_first=True)
+
+    if ctx.guild.id in bans and track.title in bans[ctx.guild.id]:
+        return str_song_banned_query.format(track.title)
+    
+    if track is None:
+        return str_music_not_found
+
     # Add the first track to the queue
     await player.queue.put_wait(track)
     
@@ -116,12 +135,19 @@ async def playnext(ctx, search: str):
     if has_control(ctx) == False:
         return str_member_no_control
 
+    
     if not ctx.voice_client:
         player: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
     else:
         player: wavelink.Player = ctx.voice_client
 
     track = await wavelink.YouTubeTrack.search(search, return_first=True)
+
+    if ctx.guild.id in bans and track.title in bans[ctx.guild.id]:
+        return str_song_banned_query.format(track.title)
+
+    if track is None:
+        return str_music_not_found
 
     if len (player.queue) > 0:
         # Add the first track to the queue
@@ -146,7 +172,7 @@ async def playlist(ctx):
     if not queue:
         return str_empty_queue
     else:
-        track_list = '\n'.join([str_queue_format.format(1, track.title, "[Up Next]" if i == 0  else "") for i, track in enumerate(queue)])
+        track_list = '\n'.join([str_queue_format.format(i, track.title, "[Up Next]" if i == 0  else "") for i, track in enumerate(queue)])
         return str_queue.format(track_list)
     
 async def skip(ctx):
@@ -290,6 +316,7 @@ async def takecontrol(ctx):
         return str_member_alone_in_voice_channel
     
     votes[ctx.author.guild.id] = 0
+    voteLeads[ctx.author.guild.id] = ctx.author.id
     return str_vote.format(ctx.author.id, votes_needed)
 
 async def givecontrol(ctx, member: discord.Member):
@@ -307,6 +334,7 @@ async def givecontrol(ctx, member: discord.Member):
     return str_has_control.format(member.id)
 
 async def vote(ctx):
+    guildID = ctx.author.guild.id
     if not ctx.author.voice:
         return str_member_not_connected
     
@@ -318,19 +346,62 @@ async def vote(ctx):
     if ctx.author.voice.channel != ctx.voice_client.channel:
         return str_not_connected_to_your_channel
     
-    if ctx.author.guild.id not in votes:
+    if guildID not in votes:
         return str_no_vote_in_progress
     
-    votes[ctx.author.guild.id] += 1
+    votes[guildID] += 1
 
     votes_needed = len(ctx.author.voice.channel.members)-1
 
-    if votes[ctx.author.guild.id] >= votes_needed:
-        del votes[ctx.author.guild.id]
-        control[ctx.author.guild.id] = ctx.author.id
-        return str_has_control.format(ctx.author.id)
+    if votes[guildID] >= votes_needed:
+        del votes[guildID]
+        control[guildID] = voteLeads[guildID]
+        return str_has_control.format(voteLeads[guildID])
+    
+    vote_left = votes_needed - votes[guildID]
+    return str_vote_counted.format(vote_left)
     
 async def relinquish_control(member, before):
     if member.guild.id in control and control[member.guild.id] == member.id:
         del control[member.guild.id]
         return str_relinquish_control.format(member.id)
+
+
+async def ban(ctx, search:str):
+    track = await wavelink.YouTubeTrack.search(search, return_first=True)
+
+    if track is None:
+        return str_music_not_found
+    
+    if ctx.author.guild.id not in bans:
+        bans[ctx.author.guild.id] = []
+    
+    if track.title in bans[ctx.author.guild.id]:
+        return str_song_already_banned.format(track.title)
+
+    bans[ctx.author.guild.id].append(track.title)
+    return str_song_banned.format(track.title)
+
+async def unban(ctx, search:str):
+    track = await wavelink.YouTubeTrack.search(search, return_first=True)
+
+    if track is None:
+        return str_music_not_found
+    
+    if ctx.author.guild.id not in bans:
+        return str_no_bans.format(track.title)
+    
+    if track.title not in bans[ctx.author.guild.id]:
+        return str_no_bans.format(track.title)
+    
+    bans[ctx.author.guild.id].remove(track.title)
+    return str_song_unbanned.format(track.title)
+
+async def listbans(ctx):
+    if ctx.author.guild.id not in bans:
+        return str_no_bans_list
+    string = ""
+    for i, track in enumerate(bans[ctx.author.guild.id]):
+        string += str_ban_format.format(i, str(track.title))
+    ban_list = '\n'.join([str_ban_format.format(i+1, str(trackname)) for i, trackname in enumerate(bans[ctx.author.guild.id])])
+    return str_bans_list.format(ban_list)

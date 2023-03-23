@@ -2,6 +2,7 @@ import discord
 import responses
 import brain
 from dotenv import load_dotenv, dotenv_values
+from discord.ext.commands import has_permissions
 import feature.csteams as csteams
 import feature.music as music
 import wavelink
@@ -204,6 +205,27 @@ def run_discord_bot():
                 await before.channel.send(res)
             else:
                 await channel.send(res)
+
+    @music_comm.command(name = 'ban', description = 'Ban a song')
+    async def m_ban(ctx, *, search: str):
+        if not ctx.author.top_role.permissions.administrator:
+            await ctx.respond("You can't ban songs unless you are a admin!")
+            return
+        res = await music.ban(ctx, search)
+        await ctx.respond(res)
+
+    @music_comm.command(name = 'unban', description = 'Unban a song')
+    async def m_unban(ctx, *, search: str):
+        if not ctx.author.top_role.permissions.administrator:
+            await ctx.respond("You can't ban songs unless you are a admin!")
+            return
+        res = await music.unban(ctx, search)
+        await ctx.respond(res)
+
+    @music_comm.command(name = 'listbans', description = 'List banned songs')
+    async def m_listbans(ctx):
+        res = await music.listbans(ctx)
+        await ctx.respond(res)
 
     bot.add_application_command(music_comm)
 

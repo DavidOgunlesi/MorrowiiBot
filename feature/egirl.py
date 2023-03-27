@@ -400,6 +400,9 @@ def send_morrowii_message_raw(authorName, user_message, conversation):
         return "Error"
 
 async def send_morrowii_message(message, user_message, conversation):
+    # cut message off at 100 characters
+    user_message = user_message[:100]
+    
     typingSpeedInCharactersPerMin = 2000
     typingCharacterDelay = 60 / typingSpeedInCharactersPerMin
     try:

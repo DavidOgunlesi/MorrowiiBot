@@ -10,7 +10,7 @@ import chess.engine
 
 engine = chess.engine.SimpleEngine.popen_uci("stockfish/stockfish-windows-2022-x86-64-avx2.exe")
 engine.configure({"UCI_elo": 1500})
-
+requests = {}
 games = {}
 draws = {}
 class ChessGame:
@@ -75,14 +75,33 @@ class ChessGame:
     def ChangeTurn(self):
         self.turn = self.white if self.turn == self.black else self.black
 
+class MyView(discord.ui.View): # Create a class called MyView that subclasses discord.ui.View
+    @discord.ui.button(label="Accept Challenge!", style=discord.ButtonStyle.primary, emoji="😎") 
+    async def button_callback(self, button, interaction: discord.Interaction):
+        if interaction.user.id in games:
+            return await interaction.response.send_message("You are already in a game!", ephemeral=True)
+        if button.view.id not in requests:
+            return await interaction.response.send_message("The challenge has expired!", ephemeral=True)
+        if interaction.user.id == requests[button.view.id].author.id:
+            return await interaction.response.send_message("You can't play yourself!", ephemeral=True)
+        
+        await interaction.response.send_message("You accepted the challenge!", ephemeral=True) 
+        # (ctx, opponent: discord.Member):
+        await start_game(requests[button.view.id], interaction.user)
 
+async def request_game(ctx):
+    if ctx.author.id in games:
+        return await ctx.respond("You are already in a game!")
+    view:discord.ui.View  = MyView()
+    requests[view.id] = ctx
+    return await ctx.respond("Waiting for opponent to accept...", view=view)
+
+async def play_bot(ctx, bot: discord.Member):
+    if ctx.author.id in games:
+        return await ctx.respond("You are already in a game!")
+    return await start_game(ctx, bot)
 
 async def start_game(ctx, opponent: discord.Member):
-    if ctx.author.id in games:
-        return "You are already in a game!"
-    if opponent.id in games:
-        return f"{opponent.name} is already in a game!"
-    
     board = chess.Board()
     players = [ctx.author, opponent]
     white = random.choice(players)
@@ -95,9 +114,9 @@ async def start_game(ctx, opponent: discord.Member):
     await game.do_engine_move(ctx)
     gameover = await game.check_for_game_over(ctx)
     if gameover:
-        return f"Game over!"
+        return await ctx.respond(f"Game over!")
 
-    return f"Game started! <@{white.id}> is white. Make your move with `/move <from> <to>`"
+    return await ctx.respond(f"Game started! <@{white.id}> is white. Make your move with `/chess move <from> <to>`")
 
 
 async def move(ctx, from_square, to_square):
@@ -156,7 +175,8 @@ async def draw(ctx):
         del games[game.black.id]
         return "Draw! Game over!"
 
-    draws[opponent] = ctx.author
+    draws[opponent.id] = ctx.author
+    return f"{opponent.name} has been offered a draw! They have 30 seconds to accept with `/chess acceptdraw`"
 
 async def accept_draw(ctx):
     if ctx.author.id not in games:

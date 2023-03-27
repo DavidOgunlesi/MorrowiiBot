@@ -1,11 +1,12 @@
 import discord
 import feature.egirl as egirl
 from dotenv import load_dotenv, dotenv_values
+import wavelink
+import settings
 import feature.csteams as csteams
 import feature.music as music
 import feature.egirl as egirl
-import wavelink
-import settings
+
 APPLICATION_ID = 1087034256838111383
 
 load_dotenv()
@@ -23,22 +24,22 @@ config = dotenv_values(".env")
 #         print(e)
 
 
-def run_discord_bot():
+def run_discord_bot(do_music: bool = True, do_egirl: bool = True):
     TOKEN = config['DISCORD_TOKEN']
-    bot = discord.Bot(intents=discord.Intents.all())#commands.Bot(intents=discord.Intents.all(), command_prefix='/')
-    conversation = egirl.init_morrowii_brain()
-
-    # async def on_event_hook(event):
-    #     if isinstance(event, (wavelink.TrackEnd, wavelink.TrackException)):
-    #         play_next_song.set()
+    bot = discord.Bot(intents=discord.Intents.all())
     
+    if do_egirl:
+        conversation = egirl.init_morrowii_brain()
 
     @bot.event
     async def on_ready() -> None:
         print(f'{bot.user} | {bot.user.id} has connected to Discord!')
-        node: wavelink.Node = wavelink.Node(uri='http://localhost:3000', password='youshallnotpass')
-        await wavelink.NodePool.connect(client=bot, nodes=[node])
-        print('Wavelink has been setup.')
+        if do_music:
+            node: wavelink.Node = wavelink.Node(uri='http://localhost:3000', password='youshallnotpass')
+            await wavelink.NodePool.connect(client=bot, nodes=[node])
+            print('Wavelink has been setup.')
+        else:
+            print('Music has been disabled. Skipping wavelink setup. Media player will not be available.')
 
     @bot.command(name="ping",description="Sends the bot's latency.") # this decorator makes a slash command
     async def ping(ctx): # a slash command will be created with the name "ping"
@@ -222,6 +223,28 @@ def run_discord_bot():
 
     bot.add_application_command(music_comm)
 
+    """ 
+    ---------------
+    CHESS COMMANDS 
+    ---------------
+    """ 
+
+    chess_comm = discord.SlashCommandGroup("chess", "Chess commands")
+
+    @chess_comm.command(name = 'playme', description = 'Play Morrowii at Chess!')
+    async def chess_test(ctx):
+        #res = await music.listbans(ctx)
+        await ctx.respond("Not implemented yet!")
+
+    @chess_comm.command(name = 'playme', description = 'Play Morrowii at Chess!')
+    async def chess_playme(ctx):
+        #res = await music.listbans(ctx)
+        await ctx.respond("Not implemented yet!")
+
+    bot.add_application_command(chess_comm)
+
+    
+
     @bot.event
     async def on_message(ctx):
         # stops execution if the message is from the bot itself
@@ -243,10 +266,10 @@ def run_discord_bot():
             return
         print(user_message.replace(invoke_string, ''))
         user_message = user_message.replace(invoke_string, '')
-        # if len(user_message) > 0 and user_message.strip()[0] ==" ~":
-        #     await send_message(message, user_message.strip(), True)
-        # if len(user_message) > 0 and user_message.strip()[0] =="\\":
-        #     await send_message(message, user_message.strip(), False)
+
+        if not do_egirl:
+            return
+        
         if user_message == " ":
             await egirl.send_morrowii_message(ctx, "I'm shy...", conversation)
         if len(user_message) > 0:

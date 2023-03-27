@@ -53,6 +53,8 @@ def AddSwearwords(string):
     string = string.replace("c*nt", "cunt")
     string = string.replace("F*ck", "Fuck")
     string = string.replace("f*ck", "fuck")
+    string = string.replace("Sh*t", "Shit")
+    string = string.replace("sh*t", "shit")
     return string.strip()
 
 """

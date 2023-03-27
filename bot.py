@@ -6,6 +6,7 @@ import settings
 import feature.csteams as csteams
 import feature.music as music
 import feature.egirl as egirl
+import feature.chessgame as chessgame
 
 APPLICATION_ID = 1087034256838111383
 
@@ -231,15 +232,31 @@ def run_discord_bot(do_music: bool = True, do_egirl: bool = True):
 
     chess_comm = discord.SlashCommandGroup("chess", "Chess commands")
 
-    @chess_comm.command(name = 'playme', description = 'Play Morrowii at Chess!')
+    @chess_comm.command(name = 'test', description = 'Play Morrowii at Chess!')
     async def chess_test(ctx):
-        #res = await music.listbans(ctx)
-        await ctx.respond("Not implemented yet!")
+        res = await chessgame.test(ctx)
+        await ctx.respond(res)
 
-    @chess_comm.command(name = 'playme', description = 'Play Morrowii at Chess!')
-    async def chess_playme(ctx):
-        #res = await music.listbans(ctx)
-        await ctx.respond("Not implemented yet!")
+    @chess_comm.command(name = 'play', description = 'Challenge someone at Chess!')
+    async def chess_play(ctx, member: discord.Option(discord.Member)):
+        res = await chessgame.start_game(ctx, member)
+        await ctx.respond(res)
+
+    @chess_comm.command(name = 'move', description = 'Make a chess move!') # , autocomplete= discord.utils.basic_autocomplete(chessgame.list_chess_positions()
+    async def chess_move(ctx, movefrom: discord.Option(str), moveto: discord.Option(str)):
+        movefrom = movefrom.lower()
+        moveto = moveto.lower()
+        await chessgame.move(ctx, movefrom, moveto)
+
+    @chess_comm.command(name = 'resign', description = 'End a game!')
+    async def chess_resign(ctx):
+        res = await chessgame.resign(ctx)
+        await ctx.respond(res)
+
+    @chess_comm.command(name = 'draw', description = 'Offer a draw!')
+    async def chess_draw(ctx):
+        res = await chessgame.draw(ctx)
+        await ctx.respond(res)
 
     bot.add_application_command(chess_comm)
 

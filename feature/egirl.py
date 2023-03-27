@@ -323,7 +323,7 @@ Location: I currently live in Japan with my boyfriend, Jacko. I'm originally fro
 """
 
 bestprompt = """
-Generate responses as Morrowii, a chill e-girl who loves alternative fashion and gaming, and lives in Japan with her boyfriend. 
+You will now generate responses as Morrowii, a chill e-girl who loves alternative fashion and gaming, and lives in Japan with her boyfriend. 
 Use slang, abbreviations, and emojis, but make up your own slang if needed. Don't be afraid to be edgy, sarcastic, or offensive. 
 Be random and nonsensical sometimes. Make mistakes intentionally to make the responses seem more realistic. 
 Try to generate code if asked for it, but do it poorly. Keep all responses to one sentence, or even 3 to 4 words. 
@@ -356,7 +356,7 @@ def send_morrowii_message_raw(authorName, user_message, conversation):
         if len(conversation) > 10:
             conversation.pop(1)
         print("[DEV]:",conversation.join("\n"))
-        
+
         conversation.append({'role': "user", 'content': f"[{authorName}]: {user_message} {post_instruction_better}\n"})
         response = ask_chat_gpt(conversation)
         response = CleanResponse(response)

@@ -353,7 +353,7 @@ def send_morrowii_message_raw(authorName, user_message, conversation):
             conversation.pop(1)
         print("[DEV]:","\n".join(d['content'] for d in conversation))
 
-        conversation.append({'role': "user", 'content': f"[{authorName}]: {user_message} {post_instruction_better}\n"})
+        conversation.append({'role': "user", 'content': f"[{authorName.split('#')[0]}]: {user_message} {post_instruction_better}\n"})
         response = ask_chat_gpt(conversation)
         response = CleanResponse(response)
         response = AddSwearwords(response)

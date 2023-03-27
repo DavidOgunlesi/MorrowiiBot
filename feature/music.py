@@ -106,8 +106,10 @@ async def queueplay(ctx, search: str):
         player: wavelink.Player = await ctx.author.voice.channel.connect(cls=wavelink.Player)
     else:
         player: wavelink.Player = ctx.voice_client
-
-    track = await wavelink.YouTubeTrack.search(search, return_first=True)
+    try:
+        track = await wavelink.YouTubeTrack.search(search, return_first=True)
+    except:
+        return str_music_not_found
 
     if ctx.guild.id in bans and track.title in bans[ctx.guild.id]:
         return str_song_banned_query.format(track.title)
@@ -141,7 +143,10 @@ async def playnext(ctx, search: str):
     else:
         player: wavelink.Player = ctx.voice_client
 
-    track = await wavelink.YouTubeTrack.search(search, return_first=True)
+    try:
+        track = await wavelink.YouTubeTrack.search(search, return_first=True)
+    except:
+        return str_music_not_found
 
     if ctx.guild.id in bans and track.title in bans[ctx.guild.id]:
         return str_song_banned_query.format(track.title)
@@ -365,6 +370,8 @@ async def relinquish_control(member, before):
     if member.guild.id in control and control[member.guild.id] == member.id:
         del control[member.guild.id]
         return str_relinquish_control.format(member.id)
+    
+    return None
 
 
 async def ban(ctx, search:str):

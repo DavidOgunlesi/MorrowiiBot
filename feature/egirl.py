@@ -357,7 +357,7 @@ def send_morrowii_message_raw(authorName, user_message, conversation):
         # if conversaiton is too long, remove the second oldest message
         if len(conversation) > 10:
             conversation.pop(1)
-        print("[DEV]:","\n".join(conversation))
+        print("[DEV]:","\n".join(d['content'] for d in conversation))
 
         conversation.append({'role': "user", 'content': f"[{authorName}]: {user_message} {post_instruction_better}\n"})
         response = ask_chat_gpt(conversation)

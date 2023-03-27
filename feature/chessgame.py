@@ -5,11 +5,11 @@ from cairosvg import svg2png
 import discord
 import random
 import asyncio
-from settings import APPLICATION_ID
+import settings
 import chess.engine
 
 engine = chess.engine.SimpleEngine.popen_uci("stockfish/stockfish-windows-2022-x86-64-avx2.exe")
-engine.configure({"UCI_elo": 1500})
+engine.configure({"UCI_elo": settings.CHESS_ELO})
 requests = {}
 games = {}
 draws = {}
@@ -169,7 +169,7 @@ async def draw(ctx):
         return "You are not in a game!"
     opponent = games[ctx.author.id].black if ctx.author.id == games[ctx.author.id].white.id else games[ctx.author.id].white
 
-    if opponent.id == APPLICATION_ID:
+    if opponent.id == settings.APPLICATION_ID:
         game: ChessGame = games[ctx.author.id]
         del games[game.white.id]
         del games[game.black.id]

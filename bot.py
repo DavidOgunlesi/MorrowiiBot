@@ -1,10 +1,9 @@
 import discord
-import responses
-import brain
+import feature.egirl as egirl
 from dotenv import load_dotenv, dotenv_values
-from discord.ext.commands import has_permissions
 import feature.csteams as csteams
 import feature.music as music
+import feature.egirl as egirl
 import wavelink
 import settings
 APPLICATION_ID = 1087034256838111383
@@ -12,28 +11,22 @@ APPLICATION_ID = 1087034256838111383
 load_dotenv()
 config = dotenv_values(".env")
 
-async def send_message(message, user_message, is_private):
-    try:
-        response = await responses.handle_response(message, user_message)
-        if is_private:
-            await message.author.send(response) 
-        else: 
-            await message.channel.send(response)
+# async def send_message(message, user_message, is_private):
+#     try:
+#         response = await responses.handle_response(message, user_message)
+#         if is_private:
+#             await message.author.send(response) 
+#         else: 
+#             await message.channel.send(response)
 
-    except Exception as e:
-        print(e)
+#     except Exception as e:
+#         print(e)
 
-async def send_ai_message(message, user_message, conversation):
-    try:
-        response = brain.send_morrowii_message(user_message, conversation)
-        await message.channel.send(response)
-    except Exception as e:
-        print(e)
 
 def run_discord_bot():
     TOKEN = config['DISCORD_TOKEN']
     bot = discord.Bot(intents=discord.Intents.all())#commands.Bot(intents=discord.Intents.all(), command_prefix='/')
-    #conversation = brain.init_morrowii_brain()
+    conversation = egirl.init_morrowii_brain()
 
     # async def on_event_hook(event):
     #     if isinstance(event, (wavelink.TrackEnd, wavelink.TrackException)):
@@ -229,41 +222,37 @@ def run_discord_bot():
 
     bot.add_application_command(music_comm)
 
-    # @bot.event
-    # async def on_ready():
-    #     print(f"> {bot.user} has connected to Discord!")
-
-    # @client.event
-    # async def on_message(message):
-    #     # stops execution if the message is from the bot itself
-    #     if message.author == client.user:
-    #         return
+    @bot.event
+    async def on_message(ctx):
+        # stops execution if the message is from the bot itself
+        if ctx.author == bot.user:
+            return
         
-    #     username = str(message.author)
-    #     user_message = str(message.content)
-    #     channel = str(message.channel)
+        username = str(ctx.author)
+        user_message = str(ctx.content)
+        channel = str(ctx.channel)
 
-    #     print(f"{username} sent a message in {channel}: {user_message}")
+        print(f"{username} sent a message in {channel}: {user_message}")
 
-    #     if len(user_message) == 0:
-    #         return
+        if len(user_message) == 0:
+            return
         
-    #     invoke_string = f"<@{APPLICATION_ID}>"
+        invoke_string = f"<@{APPLICATION_ID}>"
 
-    #     if not invoke_string in user_message:
-    #         return
-    #     print(user_message.replace(invoke_string, ''))
-    #     user_message = user_message.replace(invoke_string, '')
-    #     if len(user_message) > 0 and user_message.strip()[0] ==" ~":
-    #         await send_message(message, user_message.strip(), True)
-    #     if len(user_message) > 0 and user_message.strip()[0] =="\\":
-    #         await send_message(message, user_message.strip(), False)
-    #     # elif user_message == " ":
-    #     #     await send_ai_message(message, "I'm shy...", conversation)
-    #     # elif len(user_message) > 0:
-    #     #     await send_ai_message(message, user_message, conversation)
-    #     # else:
-    #     #     await send_ai_message(message, "hey!", conversation)
+        if not invoke_string in user_message:
+            return
+        print(user_message.replace(invoke_string, ''))
+        user_message = user_message.replace(invoke_string, '')
+        # if len(user_message) > 0 and user_message.strip()[0] ==" ~":
+        #     await send_message(message, user_message.strip(), True)
+        # if len(user_message) > 0 and user_message.strip()[0] =="\\":
+        #     await send_message(message, user_message.strip(), False)
+        if user_message == " ":
+            await egirl.send_morrowii_message(ctx, "I'm shy...", conversation)
+        if len(user_message) > 0:
+            await egirl.send_morrowii_message(ctx, user_message, conversation)
+        else:
+            await egirl.send_morrowii_message(ctx, "hey!", conversation)
 
     bot.run(TOKEN)
     #bot.run(TOKEN)

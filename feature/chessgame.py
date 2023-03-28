@@ -46,7 +46,7 @@ class ChessGame:
         self.ChangeTurn()
 
     async def do_engine_move(self, ctx):
-        if self.turn.id == APPLICATION_ID:
+        if self.turn.id == settings.APPLICATION_ID:
             async with ctx.channel.typing():
                 type_time = random.randint(0, 5)
                 await asyncio.sleep(type_time)

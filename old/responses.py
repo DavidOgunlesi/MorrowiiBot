@@ -1,6 +1,6 @@
 from __future__ import annotations
 import random
-import feature.csteams as csteams
+import old.csteams as csteams
 
 async def handle_response(message, user_message: str):
     l_msg = user_message#.lower()

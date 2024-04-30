@@ -3,8 +3,8 @@ import feature.egirl as egirl
 from dotenv import load_dotenv, dotenv_values
 import wavelink
 import settings
-import feature.csteams as csteams
-import feature.music as music
+import old.csteams as csteams
+import old.music as music
 import feature.egirl as egirl
 import feature.chessgame as chessgame
 
@@ -24,13 +24,23 @@ config = dotenv_values(".env")
 #     except Exception as e:
 #         print(e)
 
+def GetMessageToRespondTo(ctx, user_message, bot):
+        invoke_string = f"<@{APPLICATION_ID}>"
+        if ctx.reference is not None:
+            if ctx.reference.resolved != None and ctx.reference.resolved.author == bot.user:
+                return user_message.replace(invoke_string, '');
+
+        if invoke_string in user_message or "morrowii" in user_message:
+            return user_message.replace(invoke_string, '');
+        return None
 
 def run_discord_bot(do_music: bool = True, do_egirl: bool = True):
     TOKEN = config['DISCORD_TOKEN']
     bot = discord.Bot(intents=discord.Intents.all())
     
     if do_egirl:
-        conversation = egirl.init_morrowii_brain()
+        conversation, db = egirl.init_morrowii_brain()
+        
 
     @bot.event
     async def on_ready() -> None:
@@ -62,7 +72,7 @@ def run_discord_bot(do_music: bool = True, do_egirl: bool = True):
     COUNTERSTRIKE COMMANDS 
     ---------------
     """ 
-
+    '''
     cs_comm = discord.SlashCommandGroup("cs", "CS:GO commands")
 
     # newteam [num] or join 
@@ -92,14 +102,14 @@ def run_discord_bot(do_music: bool = True, do_egirl: bool = True):
         await ctx.respond(res)
 
     bot.add_application_command(cs_comm)
-
+    '''
 
     """ 
     ---------------
     MUSIC COMMANDS 
     ---------------
     """ 
-
+    '''
     music_comm = discord.SlashCommandGroup("music", "Music commands")
 
     @bot.event
@@ -223,6 +233,7 @@ def run_discord_bot(do_music: bool = True, do_egirl: bool = True):
         await ctx.respond(res)
 
     bot.add_application_command(music_comm)
+    '''
 
     """ 
     ---------------
@@ -263,8 +274,6 @@ def run_discord_bot(do_music: bool = True, do_egirl: bool = True):
 
     bot.add_application_command(chess_comm)
 
-    
-
     @bot.event
     async def on_message(ctx):
         # stops execution if the message is from the bot itself
@@ -280,22 +289,20 @@ def run_discord_bot(do_music: bool = True, do_egirl: bool = True):
         if len(user_message) == 0:
             return
         
-        invoke_string = f"<@{APPLICATION_ID}>"
-
-        if not invoke_string in user_message:
-            return
-        print(user_message.replace(invoke_string, ''))
-        user_message = user_message.replace(invoke_string, '')
-
+        user_message = GetMessageToRespondTo(ctx, user_message, bot)
+        print(f"Message to respond to: {user_message}")
         if not do_egirl:
             return
         
-        if user_message == " ":
-            await egirl.send_morrowii_message(ctx, "I'm shy...", conversation)
+        if user_message is None:
+            return
+
         if len(user_message) > 0:
-            await egirl.send_morrowii_message(ctx, user_message, conversation)
+            await egirl.send_morrowii_message(ctx, user_message, conversation, db)
         else:
-            await egirl.send_morrowii_message(ctx, "hey!", conversation)
+            await egirl.send_morrowii_message(ctx, "hey!", conversation, db)
 
     bot.run(TOKEN)
     #bot.run(TOKEN)
+
+    
